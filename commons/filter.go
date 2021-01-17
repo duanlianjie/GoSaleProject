@@ -6,6 +6,7 @@ import (
 
 //声明新的函数类型
 type FilterHandle func(rw http.ResponseWriter, req *http.Request) error
+
 //声明新的函数类型
 type WebHandle func(rw http.ResponseWriter, req *http.Request)
 

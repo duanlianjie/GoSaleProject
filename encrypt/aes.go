@@ -16,7 +16,7 @@ var PwdKey = []byte("DIS**#KKKDJJSKDI")
 
 //PKCS7Padding 填充模式
 func PKCS7Padding(ciphertext []byte, blockSize int) []byte {
-	padding := blockSize - len(ciphertext) % blockSize
+	padding := blockSize - len(ciphertext)%blockSize
 	//Repeat() 函数的功能是把切片 []byte{byte(padding)} 复制 padding 个，然后合并成新的字节切片返回
 	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
 	return append(ciphertext, padtext...)

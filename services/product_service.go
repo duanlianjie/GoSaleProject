@@ -11,6 +11,7 @@ type ProductService interface {
 	UpdateProduct(product *datamodels.Product) error
 	GetProductByID(productId int64) (*datamodels.Product, error)
 	GetAllProduct() ([]*datamodels.Product, error)
+	SubNumberOne(productID int64) error
 }
 
 type ProductServiceManager struct {
@@ -44,4 +45,8 @@ func (p *ProductServiceManager) GetProductByID(productId int64) (*datamodels.Pro
 func (p *ProductServiceManager) GetAllProduct() ([]*datamodels.Product, error) {
 	//panic("implement me")
 	return p.productRepository.SelectAll()
+}
+
+func (p *ProductServiceManager) SubNumberOne(productID int64) error {
+	return p.productRepository.SubProductNum(productID)
 }

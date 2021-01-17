@@ -7,6 +7,7 @@ import (
 	"goproject/commons"
 	"goproject/frontend/middleware"
 	"goproject/frontend/web/controllers"
+	"goproject/rabbitmq"
 	"goproject/repositories"
 	"goproject/services"
 	"log"
@@ -43,7 +44,7 @@ func main() {
 	//})
 
 	// 注册用户控制器
-	userRepository := repositories.NewUserRepository("user", db)
+	userRepository := repositories.NewUserRepository("user1", db)
 	userService := services.NewUserService(userRepository)
 
 	userController := mvc.New(app.Party("/user"))
@@ -51,6 +52,7 @@ func main() {
 	userController.Register(userService, context)
 	userController.Handle(new(controllers.UserController))
 
+	rabbitmq := rabbitmq.NewRabbitMQSimple("product")
 
 	// 注册商品订单控制器
 	productRepository := repositories.NewProductRepository("product", db)
@@ -59,14 +61,14 @@ func main() {
 	orderService := services.NewOrderService(orderRepository)
 
 	productParty := app.Party("/product")
-	productParty.Use(middleware.AuthConProduct)		// Cookie 验证中间件
+	productParty.Use(middleware.AuthConProduct) // Cookie 验证中间件
 	productController := mvc.New(productParty)
 	//productController.Register(productService, orderService, session.Start)
-	productController.Register(productService, orderService)
+	productController.Register(productService, orderService, context, rabbitmq)
 	productController.Handle(new(controllers.ProductController))
 
 	app.Run(
-		iris.Addr("localhost:8082"),
+		iris.Addr("localhost:8081"),
 		iris.WithoutServerError(iris.ErrServerClosed),
 		iris.WithOptimizations,
 	)

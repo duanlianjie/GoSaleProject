@@ -10,9 +10,10 @@ import (
 
 //声明新切片类型
 type uints []uint32
-func (x uints) Len() int { return len(x) }
+
+func (x uints) Len() int           { return len(x) }
 func (x uints) Less(i, j int) bool { return x[i] < x[j] }
-func (x uints) Swap(i, j int) { x[i], x[j] = x[j], x[i] }
+func (x uints) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
 
 //当hash环上没有数据时，提示错误
 var errEmpty = errors.New("Hash 环没有数据")
@@ -62,7 +63,7 @@ func (c *Consistent) hashKey(key string) uint32 {
 func (c *Consistent) updateSortedHashes() {
 	hashes := c.sortedHashes[:0]
 	//判断切片容量，是否过大，如果过大则重置
-	if cap(c.sortedHashes) / (c.VirtualNode * 4) > len(c.circle) {
+	if cap(c.sortedHashes)/(c.VirtualNode*4) > len(c.circle) {
 		hashes = nil
 	}
 

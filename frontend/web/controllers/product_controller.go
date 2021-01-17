@@ -1,10 +1,12 @@
 package controllers
 
 import (
+	"encoding/json"
 	"github.com/kataras/iris/v12"
 	"github.com/kataras/iris/v12/mvc"
 	"github.com/kataras/iris/v12/sessions"
 	"goproject/datamodels"
+	"goproject/rabbitmq"
 	"goproject/services"
 	"html/template"
 	"os"
@@ -16,6 +18,7 @@ type ProductController struct {
 	Context        iris.Context
 	ProductService services.ProductService
 	OrderService   services.OrderService
+	RabbitMQ       *rabbitmq.RabbitMQ
 	Session        *sessions.Session
 }
 
@@ -88,52 +91,79 @@ func (p *ProductController) GetDetail() mvc.View {
 	}
 }
 
-func (p *ProductController) GetOrder() mvc.View {
+func (p *ProductController) GetOrder() []byte {
 	productString := p.Context.URLParam("productID")
 	userString := p.Context.GetCookie("uid")
-
-	productID, err := strconv.Atoi(productString)
+	productID, err := strconv.ParseInt(productString, 10, 64)
+	if err != nil {
+		p.Context.Application().Logger().Debug(err)
+	}
+	userID, err := strconv.ParseInt(userString, 10, 64)
 	if err != nil {
 		p.Context.Application().Logger().Debug(err)
 	}
 
-	product, err := p.ProductService.GetProductByID(int64(productID))
+	//创建消息体
+	message := datamodels.NewMessage(userID, productID)
+	//类型转化
+	byteMessage, err := json.Marshal(message)
 	if err != nil {
 		p.Context.Application().Logger().Debug(err)
 	}
 
-	var orderID int64
-	showMessage := "抢购失败"
-	if product.ProductNum > 0 {
-		product.ProductNum -= 1
-		err := p.ProductService.UpdateProduct(product)
-		if err != nil {
-			p.Context.Application().Logger().Debug(err)
-		}
-
-		userID, err := strconv.Atoi(userString)
-		if err != nil {
-			p.Context.Application().Logger().Debug(err)
-		}
-
-		order := &datamodels.Order{
-			UserID:      int64(userID),
-			ProductID:   int64(productID),
-			OrderStatus: datamodels.OrderSuccess,
-		}
-		orderID, err = p.OrderService.InsertOrder(order)
-		if err != nil {
-			p.Context.Application().Logger().Debug(err)
-		} else {
-			showMessage = "抢购成功"
-		}
+	err = p.RabbitMQ.PublishSimple(string(byteMessage))
+	if err != nil {
+		p.Context.Application().Logger().Debug(err)
 	}
-	return mvc.View{
-		Layout: "shared/productLayout.html",
-		Name:   "product/result.html",
-		Data: iris.Map{
-			"orderID":     orderID,
-			"showMessage": showMessage,
-		},
-	}
+	return []byte("true")
 }
+
+//func (p *ProductController) GetOrder() mvc.View {
+//	productString := p.Context.URLParam("productID")
+//	userString := p.Context.GetCookie("uid")
+//
+//	productID, err := strconv.Atoi(productString)
+//	if err != nil {
+//		p.Context.Application().Logger().Debug(err)
+//	}
+//
+//	product, err := p.ProductService.GetProductByID(int64(productID))
+//	if err != nil {
+//		p.Context.Application().Logger().Debug(err)
+//	}
+//
+//	var orderID int64
+//	showMessage := "抢购失败"
+//	if product.ProductNum > 0 {
+//		product.ProductNum -= 1
+//		err := p.ProductService.UpdateProduct(product)
+//		if err != nil {
+//			p.Context.Application().Logger().Debug(err)
+//		}
+//
+//		userID, err := strconv.Atoi(userString)
+//		if err != nil {
+//			p.Context.Application().Logger().Debug(err)
+//		}
+//
+//		order := &datamodels.Order{
+//			UserID:      int64(userID),
+//			ProductID:   int64(productID),
+//			OrderStatus: datamodels.OrderSuccess,
+//		}
+//		orderID, err = p.OrderService.InsertOrder(order)
+//		if err != nil {
+//			p.Context.Application().Logger().Debug(err)
+//		} else {
+//			showMessage = "抢购成功"
+//		}
+//	}
+//	return mvc.View{
+//		Layout: "shared/productLayout.html",
+//		Name:   "product/result.html",
+//		Data: iris.Map{
+//			"orderID":     orderID,
+//			"showMessage": showMessage,
+//		},
+//	}
+//}
